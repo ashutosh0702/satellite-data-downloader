@@ -1,0 +1,3 @@
+# Reproducible runtime dependencies. Regenerate with: uv lock
+# requirements.lock is exported from uv.lock for Python 3.12-3.14.
+-r requirements.lock

@@ -1,0 +1,72 @@
+{
+  "collection": "sentinel-2-c1-l2a",
+  "search": {
+    "returned": 1,
+    "complete": false,
+    "truncated": true,
+    "limit": 1,
+    "fetched_at": "2026-11-13T19:20:38.955631+00:00",
+    "cached": false
+  },
+  "scene": "S2C_T30UXC_20250427T110517_L2A",
+  "point_index": {
+    "Date": "2025-04-27",
+    "Index": 0.6043885124233624,
+    "CloudCover": 19.430456
+  },
+  "independent_expected_ndvi": 0.6043885124233624,
+  "raw_samples": {
+    "nir": 3486.0,
+    "red": 1613.0
+  },
+  "reflectance_samples": {
+    "nir": 0.24860000000000002,
+    "red": 0.06129999999999999
+  },
+  "seconds": 0.064,
+  "saved_dates": 1,
+  "resources": {
+    "bands": [
+      "red",
+      "nir"
+    ],
+    "grid": {
+      "crs": "EPSG:32630",
+      "transform": [
+        10.0,
+        0.0,
+        699190.0,
+        0.0,
+        -10.0,
+        5709450.0
+      ],
+      "width": 8,
+      "height": 12,
+      "resolution": 10.0
+    },
+    "pixels_per_date": 96,
+    "estimated_task_mb": 182,
+    "date_workers": 2,
+    "estimated_output_bytes": 1536,
+    "window_size": 512,
+    "memory_budget_mb": 512
+  },
+  "calibration": [
+    {
+      "href": "https://e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com/sentinel-2-c1-l2a/30/U/XC/2025/4/S2C_T30UXC_20250427T110517_L2A/B04.tif",
+      "band_index": 1,
+      "band": "red",
+      "scale": 0.0001,
+      "offset": -0.1,
+      "origin": "stac"
+    },
+    {
+      "href": "https://e84-earth-search-sentinel-data.s3.us-west-2.amazonaws.com/sentinel-2-c1-l2a/30/U/XC/2025/4/S2C_T30UXC_20250427T110517_L2A/B08.tif",
+      "band_index": 1,
+      "band": "nir",
+      "scale": 0.0001,
+      "offset": -0.1,
+      "origin": "stac"
+    }
+  ]
+}

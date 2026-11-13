@@ -1,0 +1,52 @@
+{
+  "verified_at": "2026-11-13T19:24:52.727887+00:00",
+  "python": "3.14.9",
+  "platform": "darwin",
+  "gdal": "3.12.2",
+  "dependencies": {
+    "streamlit": "1.67.0",
+    "rasterio": "1.5.2",
+    "numpy": "2.5.4",
+    "geopandas": "1.2.0",
+    "shapely": "2.2.0",
+    "pystac-client": "0.9.1",
+    "pystac": "1.16.0",
+    "pyproj": "3.8.0",
+    "boto3": "1.44.2"
+  },
+  "offline_suite": {
+    "command": "python -m unittest discover -q",
+    "tests": 85,
+    "seconds": 2.023,
+    "passed": true
+  },
+  "checks": {
+    "ruff": {
+      "passed": true,
+      "output": "All checks passed!"
+    },
+    "diff_whitespace": {
+      "passed": true,
+      "output": ""
+    },
+    "lock_consistency": {
+      "passed": true,
+      "output": "Resolved 77 packages in 24ms"
+    }
+  },
+  "benchmark_source_hashes_match": true,
+  "live_sentinel2_smoke": "live_smoke_results.json",
+  "locked_streamlit_health": "passed",
+  "browser_visual_verification": {
+    "performed": false,
+    "reason": "Computer-use browser access host unavailable"
+  },
+  "authenticated_sentinel1_live_read": {
+    "performed": false,
+    "reason": "No authenticated requester-pays read was attempted"
+  },
+  "python_312": {
+    "performed": false,
+    "reason": "Configured in CI; local validation used Python 3.14.9"
+  }
+}
