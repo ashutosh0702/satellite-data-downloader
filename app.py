@@ -1,10 +1,6 @@
 import streamlit as st
 
-st.set_page_config(
-    page_title="Satellite Data Portal",
-    page_icon="🛰️",
-    layout="wide"
-)
+st.set_page_config(page_title="Satellite Data Portal", page_icon="🛰️", layout="wide")
 
 st.title("🛰️ Satellite Data Portal")
 st.markdown("""
@@ -18,12 +14,13 @@ It is built utilizing modern cloud-native geospatial techniques (Cloud Optimized
 **1. Downloader**
 * Search Sentinel-1 and Sentinel-2 data over any region.
 * Define your Area of Interest (AOI) via GeoJSON or ZIP Shapefile uploads.
-* Download precisely clipped and perfectly merged spatial mosaics of your selected bands for specific dates.
+* Download precisely clipped and merged spatial mosaics of your selected bands for specific dates.
 
 **2. Timeseries Analysis**
-* Generate on-the-fly timeseries charts (e.g. NDVI or NDWI) for a single pixel.
+* Generate daily timeseries charts (e.g. NDVI or NDWI) for a single pixel.
 * Stream values directly from cloud storage without downloading huge image tiles locally. 
 * Optionally filter out cloudy pixels using the Scene Classification Layer (SCL).
+* Run processing in the background, cancel jobs, and recover saved jobs using their receipts.
 
 👈 **Select a module from the sidebar to get started!**
 """)
