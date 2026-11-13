@@ -1,0 +1,11 @@
+/output_data
+/test_data
+/test_output
+/test_verify
+/venv
+/benchmark_output
+__pycache__
+index-guide.txt
+requirements.txt
+Bhagna-Hisar.geojson
+.DS_Store
