@@ -204,10 +204,20 @@ with right:
                 "radiometry_policy": radiometry_policy,
                 "items": [item.to_dict() for item in result.items],
                 "search": result.summary(),
+                "aoi_name": upload.name.rsplit(".", 1)[0]
+                if source == "Upload file" and upload is not None
+                else "Drawn area",
+                "search_parameters": {
+                    "start_date": str(dates[0]),
+                    "end_date": str(dates[1]),
+                    "max_cloud_cover": cloud,
+                    "max_items": limit,
+                },
             }
             job_id = job_manager().create(owner, request)
             st.session_state.job_download = (owner, job_id)
         except Exception as exc:
             st.error(str(exc))
-    recovery_controls("download")
-    render_job("download")
+
+recovery_controls("download")
+render_job("download")

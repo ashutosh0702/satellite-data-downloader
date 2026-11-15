@@ -290,8 +290,12 @@ class SourceCache:
             "origin": origin,
         }
         # A new float32 array is at most one window, regardless of AOI dimensions.
-        data *= np.float32(scale)
-        data += np.float32(offset)
+        # Normalize in float64 before storing float32. Casting the scale first
+        # can turn physical zero (1000*0.0001-0.1) into a tiny nonzero value,
+        # incorrectly making a zero-denominator index look valid.
+        normalized = np.multiply(data, scale, dtype=np.float64)
+        normalized += offset
+        np.copyto(data, normalized, casting="unsafe")
         valid &= np.isfinite(data)
         return data, valid
 
@@ -320,7 +324,7 @@ def valid_raster(path, fingerprint=None, cancel_event=None):
 
 
 @contextmanager
-def raster_bundle(paths, grid, descriptions, fingerprint, overviews=True):
+def raster_bundle(paths, grid, descriptions, fingerprint, overviews=True, finalize_callback=None):
     """Publish only after all writers close successfully; manifests commit the bundle."""
     parent = Path(next(iter(paths.values()))).parent
     parent.mkdir(parents=True, exist_ok=True)
@@ -347,6 +351,8 @@ def raster_bundle(paths, grid, descriptions, fingerprint, overviews=True):
                     )
                     writers[name] = writer
                 yield writers
+                if finalize_callback:
+                    finalize_callback()
                 if overviews:
                     for writer in writers.values():
                         factors = [x for x in (2, 4, 8, 16) if min(writer.width, writer.height) // x >= 64]

@@ -19,7 +19,8 @@ import pystac
 from shapely.geometry import shape
 
 from persistence import write_json
-from processing_utils import process_items, extract_pixel_timeseries
+from job_progress import ProcessingProgress
+from processing_utils import process_items, extract_pixel_timeseries, item_datetime
 from resource_budget import CancelledError, positive_env
 from stac_utils import search_stac
 
@@ -83,6 +84,9 @@ class JobManager:
                     "geometry",
                     "search",
                     "radiometry_policy",
+                    "aoi_name",
+                    "search_parameters",
+                    "apply_scl_filter",
                 )
                 if key in request
             },
@@ -155,16 +159,41 @@ class JobManager:
                 status="queued",
                 error=None,
                 result=None,
+                progress={"completed": 0, "total": 0, "stage": "queued"},
+                queued_at=_now(),
                 pid=os.getpid(),
                 detail="Waiting for a job worker.",
             )
             _FUTURES[key] = _EXECUTOR.submit(self._run, directory, event)
 
     def _run(self, directory, event):
-        last_detail = 0.0
+        last_detail = last_progress = 0.0
+        tracker = None
+
+        def publish(force=False):
+            nonlocal last_progress
+            with _LOCK:
+                if tracker and (force or time.monotonic() - last_progress >= 0.5):
+                    self._update(directory, progress=tracker.snapshot())
+                    last_progress = time.monotonic()
+
+        def on_event(message):
+            tracker.event(message)
+            publish(message["stage"] != "processing")
 
         def progress(completed, total):
-            self._update(directory, progress={"completed": completed, "total": total})
+            if tracker:
+                publish(force=True)
+            else:
+                self._update(
+                    directory,
+                    progress={
+                        "completed": completed,
+                        "total": total,
+                        "stage": "extracting",
+                        "fraction": completed / total if total else None,
+                    },
+                )
 
         def detail(message):
             nonlocal last_detail
@@ -174,9 +203,11 @@ class JobManager:
 
         try:
             request = json.loads((directory / "request.json").read_text())
-            self._update(directory, status="running", detail="Preparing inputs.")
+            self._update(directory, status="running", detail="Preparing inputs.", started_at=_now())
             if request["kind"] == "download":
                 items = [pystac.Item.from_dict(item) for item in request["items"]]
+                tracker = ProcessingProgress(len({item_datetime(item).date() for item in items}))
+                publish(force=True)
                 _, elapsed, report = process_items(
                     items,
                     shape(request["geometry"]),
@@ -192,6 +223,7 @@ class JobManager:
                     cancel_event=event,
                     progress_callback=progress,
                     detail_callback=detail,
+                    event_callback=on_event,
                     radiometry_policy=request.get("radiometry_policy", "strict"),
                 )
                 state = (
@@ -208,6 +240,8 @@ class JobManager:
                     "skipped_dates": report["skipped_dates"],
                     "date_details": report["date_details"],
                     "search": request.get("search", {}),
+                    "total_dates": report["total_dates"],
+                    "resources": report["resources"],
                 }
             else:
                 detail("Searching the catalog.")
@@ -232,8 +266,15 @@ class JobManager:
                 state = "partial" if search.truncated or report["read_failures"] else "completed"
             if event.is_set():
                 state = "cancelled"
+            publish(force=True)
             self._update(
-                directory, status=state, result=result, detail="Processing finished.", finished_at=_now()
+                directory,
+                status=state,
+                result=result,
+                detail="Finished with skipped dates or data limitations."
+                if state == "partial"
+                else "Processing finished.",
+                finished_at=_now(),
             )
         except CancelledError:
             self._update(directory, status="cancelled", detail="Cancelled; resume to retry unfinished work.")

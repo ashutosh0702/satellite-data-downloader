@@ -1,26 +1,11 @@
+"""ASGI entry point: Streamlit UI and bounded-memory raster delivery."""
+
+from pathlib import Path
+
 import streamlit as st
 
-st.set_page_config(page_title="Satellite Data Portal", page_icon="🛰️", layout="wide")
+from artifact_delivery import export_routes
 
-st.title("🛰️ Satellite Data Portal")
-st.markdown("""
-Welcome to the Satellite Data Portal!
-
-This application allows you to search, visualize, and analyze Sentinel satellite data from the Element84 STAC catalog.
-It is built utilizing modern cloud-native geospatial techniques (Cloud Optimized GeoTIFFs, STAC).
-
-### Available Tools:
-
-**1. Downloader**
-* Search Sentinel-1 and Sentinel-2 data over any region.
-* Define your Area of Interest (AOI) via GeoJSON or ZIP Shapefile uploads.
-* Download precisely clipped and merged spatial mosaics of your selected bands for specific dates.
-
-**2. Timeseries Analysis**
-* Generate daily timeseries charts (e.g. NDVI or NDWI) for a single pixel.
-* Stream values directly from cloud storage without downloading huge image tiles locally. 
-* Optionally filter out cloudy pixels using the Scene Classification Layer (SCL).
-* Run processing in the background, cancel jobs, and recover saved jobs using their receipts.
-
-👈 **Select a module from the sidebar to get started!**
-""")
+app = st.App(
+    Path(__file__).with_name("portal.py"), routes=export_routes(base_path=st.get_option("server.baseUrlPath"))
+)

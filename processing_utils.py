@@ -24,6 +24,7 @@ from pyproj import Transformer
 from shapely.geometry import Point
 
 from persistence import directory_lock, write_json
+from result_metrics import PixelStatistics, product_record, summarize_saved, SUMMARY_VERSION
 from raster_engine import (
     Grid,
     SourceCache,
@@ -226,11 +227,29 @@ def _process_date(
     radiometry_policy,
     detail_callback,
     overviews,
+    event_callback=None,
 ):
+    started = time.perf_counter()
+    total_windows = math.ceil(grid.width / WINDOW_SIZE) * math.ceil(grid.height / WINDOW_SIZE)
+
+    def emit(stage, completed=0):
+        if event_callback:
+            event_callback(
+                {
+                    "stage": stage,
+                    "date": date_str,
+                    "completed_windows": completed,
+                    "total_windows": total_windows,
+                }
+            )
+
+    emit("waiting_for_resources")
     detail = _date_report(date_str, len(date_items))
     marker = out_dir / ".dates" / f"{date_str}.json"
     with BUDGET.reserve(estimated_task_mb(len(bands)), cancel_event):
         check_cancel(cancel_event)
+        admitted = time.perf_counter()
+        emit("preparing")
         with rasterio.Env(**gdal_options(requester_pays)):
             if resume and marker.exists():
                 try:
@@ -246,6 +265,20 @@ def _process_date(
                         for p in paths
                     )
                 ):
+                    emit("validating")
+                    if saved.get("summary_version") != SUMMARY_VERSION:
+                        saved_paths = {"composite": out_dir / saved["files"][0]}
+                        saved_paths.update(
+                            {
+                                Path(name).stem.split("_")[-1]: out_dir / name
+                                for name in saved.get("index_files", [])
+                            }
+                        )
+                        saved["products"] = summarize_saved(saved_paths, grid, cancel_event)
+                        saved["summary_version"] = SUMMARY_VERSION
+                        saved["aoi_pixels"] = saved["products"][0]["aoi_pixels"]
+                        saved["coverage_percent"] = saved["products"][0]["coverage_percent"]
+                        write_json(marker, saved)
                     saved.update(resumed=True)
                     return saved
             missing = [b for b in bands if not any(b in item.assets for item in date_items)]
@@ -270,10 +303,22 @@ def _process_date(
             paths.update({name: out_dir / f"{date_str}_{name}.tif" for name in indices})
             descriptions = {"composite": bands + ["alpha"], **{name: [name] for name in indices}}
             marker.unlink(missing_ok=True)
-            valid_pixels = window_count = 0
+            valid_pixels = window_count = aoi_pixels = 0
+            statistics = {
+                name: {band: PixelStatistics(seed=i) for i, band in enumerate(desc) if band != "alpha"}
+                for name, desc in descriptions.items()
+            }
+            index_valid_counts = {name: 0 for name in indices}
             scene_index = SceneIndex(candidates, grid)
             with SourceCache(grid, cancel_event, requester_pays, radiometry_policy) as cache:
-                with raster_bundle(paths, grid, descriptions, fingerprint, overviews) as writers:
+                with raster_bundle(
+                    paths,
+                    grid,
+                    descriptions,
+                    fingerprint,
+                    overviews,
+                    finalize_callback=lambda: emit("finalizing", window_count),
+                ) as writers:
                     if collection not in S2_COLLECTIONS:
                         writers["composite"].update_tags(radiometry="amplitude", units="amplitude")
                         for bidx in range(1, len(bands) + 1):
@@ -281,6 +326,7 @@ def _process_date(
                     for window in windows(grid):
                         check_cancel(cancel_event)
                         inside = polygon_mask(grid, window)
+                        aoi_pixels += int(inside.sum())
                         shape = inside.shape
                         arrays = {b: np.full(shape, COMMON_NODATA, dtype=np.float32) for b in bands}
                         filled = np.zeros(shape, dtype=bool)
@@ -304,13 +350,17 @@ def _process_date(
                             filled |= valid
                         for bidx, band in enumerate(bands, 1):
                             writers["composite"].write(arrays[band], bidx, window=window)
+                            statistics["composite"][band].update(arrays[band], filled)
                         writers["composite"].write(filled.astype(np.float32), len(bands) + 1, window=window)
                         writers["composite"].write_mask(filled.astype(np.uint8) * 255, window=window)
                         for name, (data, valid) in _index_arrays(arrays, indices, filled).items():
                             writers[name].write(data, 1, window=window)
                             writers[name].write_mask(valid.astype(np.uint8) * 255, window=window)
+                            statistics[name][name].update(data, valid)
+                            index_valid_counts[name] += int(valid.sum())
                         valid_pixels += int(filled.sum())
                         window_count += 1
+                        emit("processing", window_count)
                         if detail_callback:
                             detail_callback(f"{date_str}: window {window_count}")
                     if not valid_pixels:
@@ -327,6 +377,29 @@ def _process_date(
                     window_reads=cache.reads,
                     radiometry=list(cache.provenance.values()),
                     source_ids=[getattr(i, "id", "") for i in candidates],
+                    aoi_pixels=aoi_pixels,
+                    coverage_percent=100 * valid_pixels / aoi_pixels if aoi_pixels else None,
+                    summary_version=SUMMARY_VERSION,
+                    elapsed_seconds=round(time.perf_counter() - started, 3),
+                    resource_wait_seconds=round(admitted - started, 3),
+                    processing_seconds=round(time.perf_counter() - admitted, 3),
+                    products=[
+                        product_record(
+                            path,
+                            name,
+                            [band for band in descriptions[name] if band != "alpha"],
+                            statistics[name],
+                            aoi_pixels,
+                            valid_pixels if name == "composite" else index_valid_counts[name],
+                            grid=grid,
+                            units="dimensionless"
+                            if name != "composite"
+                            else "reflectance"
+                            if collection in S2_COLLECTIONS
+                            else "amplitude",
+                        )
+                        for name, path in paths.items()
+                    ],
                 )
             # The marker is the commit record for the entire composite/index bundle.
             write_json(marker, detail)
@@ -352,6 +425,7 @@ def process_items(
     detail_callback=None,
     overviews=True,
     radiometry_policy="strict",
+    event_callback=None,
 ):
     started = time.perf_counter()
     items, indices = list(items), list(dict.fromkeys(indices or []))
@@ -459,6 +533,7 @@ def process_items(
                     radiometry_policy,
                     detail_callback,
                     overviews,
+                    event_callback,
                 )
             except CancelledError as exc:
                 row = _date_report(d, len(scenes))
@@ -496,6 +571,18 @@ def process_items(
                     for b in row["missing_bands"]:
                         report["missing_band_counts"][b] = report["missing_band_counts"].get(b, 0) + 1
             save_manifest()
+            if event_callback:
+                event_callback(
+                    {
+                        "stage": "date_finished",
+                        "date": d,
+                        "saved": row["saved"],
+                        "resumed": row.get("resumed", False),
+                        "reason": row.get("reason"),
+                        "completed_dates": len(processed),
+                        "total_dates": len(by_date),
+                    }
+                )
             if progress_callback:
                 progress_callback(len(processed), len(by_date))
         for d in sorted(by_date.keys() - processed):

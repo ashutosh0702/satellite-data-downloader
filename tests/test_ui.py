@@ -13,9 +13,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class UITests(RasterCase):
+    def test_cli_discovers_asgi_entrypoint(self):
+        from streamlit.web.server.app_discovery import discover_asgi_app
+
+        discovery = discover_asgi_app(ROOT / "app.py")
+        self.assertTrue(discovery.is_asgi_app)
+        self.assertEqual(discovery.app_name, "app")
+
     def test_pages_start_without_errors(self):
         with patch("streamlit_folium.st_folium", return_value={}):
-            for path in ("app.py", "pages/1_Downloader.py", "pages/2_Timeseries_Analysis.py"):
+            for path in ("portal.py", "pages/1_Downloader.py", "pages/2_Timeseries_Analysis.py"):
                 with self.subTest(path=path):
                     app = AppTest.from_file(str(ROOT / path)).run(timeout=10)
                     self.assertEqual(len(app.exception), 0, list(app.exception))
@@ -66,5 +73,11 @@ class UITests(RasterCase):
             app.session_state["job_download"] = (owner, job_id)
             app.run(timeout=10)
             self.assertEqual(len(app.exception), 0, list(app.exception))
-            self.assertTrue(any("completed" in element.value for element in app.markdown))
-            self.assertEqual(len(app.dataframe), 1)
+            self.assertTrue(any("completed" in element.value for element in app.success))
+            self.assertEqual([tab.label for tab in app.tabs], ["Preview", "Files", "Quality", "Run details"])
+            self.assertGreaterEqual(len(app.dataframe), 1)
+            self.assertEqual(
+                [metric.label for metric in app.metric],
+                ["Dates with imagery", "Dates saved", "Dates skipped", "Raster files", "Output size"],
+            )
+            self.assertEqual(len(app.get("image")), 1)

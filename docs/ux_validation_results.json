@@ -1,0 +1,40 @@
+{
+  "verified_at": "2026-11-13T23:26:09.431606+00:00",
+  "python": "3.14.9",
+  "platform": "darwin",
+  "dependencies": {
+    "streamlit": "1.67.0",
+    "starlette": "1.10.0",
+    "pillow": "13.0.0",
+    "rasterio": "1.5.2",
+    "numpy": "2.5.4"
+  },
+  "offline_suite": {
+    "command": ".venv/bin/python -m unittest discover -q",
+    "tests": 113,
+    "seconds": 2.376,
+    "passed": true
+  },
+  "checks": {
+    "ruff": true,
+    "diff_whitespace": true,
+    "locked_environment": true,
+    "benchmark_source_hashes_match": true
+  },
+  "live_http": {
+    "health": "ok",
+    "base_path": "/uxcheck",
+    "zip_files": 3,
+    "zip_bytes": 558864,
+    "content_encoding": "identity"
+  },
+  "visual_review": {
+    "completed": false,
+    "reason": "Reliable browser control unavailable; Streamlit AppTest and HTTP checks completed."
+  },
+  "limits": [
+    "No live satellite catalog request made for this UX validation.",
+    "Performance is a single-run local synthetic pipeline comparison; overviews disabled.",
+    "Historical core validation evidence remains in validation_results.json."
+  ]
+}

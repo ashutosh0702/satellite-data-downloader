@@ -31,7 +31,13 @@ uv export --locked --format requirements-txt --no-dev --no-emit-project --output
 2. Search the catalog. If the scene limit is reached, increase it or narrow the search; incomplete results are explicitly labelled.
 3. Choose bands, indices and resolution. Required index bands are added automatically. “Coarsest selected native resolution” avoids expanding coarse bands to 10 m.
 4. Start processing. Jobs continue across ordinary UI reruns. Save the job receipt for later recovery, including after a server restart.
-5. Outputs and their processing manifest are saved in a unique server-local folder. Point observations can also be downloaded as CSV/JSON.
+5. Review the full-width Preview, Files, Quality and Run details tabs. Download individual TIFFs, a filtered ZIP, summary CSV and the processing manifest. Point observations also have charts and CSV/JSON exports.
+
+Progress distinguishes preparation, raster windows and finalization, with separate saved/skipped counts. Quality summaries show valid pixel coverage inside the AOI, per product, and actionable reasons for skipped dates. Counts, minimum, maximum and mean use all valid pixels; median/P10/P90 use a bounded sample when needed.
+
+Raster exports stream from disk without loading complete TIFFs or ZIPs into Streamlit memory. Download links expire after one hour or a server restart; refresh the Files tab to renew them. ZIP selections support up to 1,000 files. Files remain in unique server-local job folders; set `SATELLITE_OUTPUT_ROOT` to change the default `output_data` root.
+
+Launch **app.py**, which serves the Streamlit pages and export routes together. `portal.py` contains the home page and is not the production entry point. The locked Streamlit version supports this ASGI entry point; `--server.baseUrlPath=your-prefix` is supported by the export links too.
 
 The older `sentinel-2-l2a` catalog has known inconsistent COG offset metadata. Strict mode rejects ambiguous legacy corrections; advanced legacy controls let an informed user explicitly choose declared metadata or already-harmonized values. The selected policy is recorded in provenance. Collection 1 is recommended, while legacy data remains available for historical coverage gaps.
 
@@ -66,3 +72,5 @@ The architecture report documents all settings, APIs, calibration and masking se
 - [Detailed architecture report and diagrams](docs/ARCHITECTURE.md)
 - [Raw performance measurements](docs/benchmark_results.json)
 - [Validation evidence and tested environment](docs/validation_results.json)
+- [Results dashboard implementation, semantics and diagrams](docs/UX_IMPROVEMENTS.md)
+- [Performance measurements with result summaries enabled](docs/ux_benchmark_results.json)

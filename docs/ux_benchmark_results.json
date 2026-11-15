@@ -1,0 +1,102 @@
+{
+  "generated_at": "2026-11-13T23:23:15.781110+00:00",
+  "python": "3.14.9",
+  "platform": "macOS-26.7.1-arm64-arm-64bit-Mach-O",
+  "rasterio": "1.5.2",
+  "gdal": "3.12.2",
+  "bands": [
+    "blue",
+    "green",
+    "red",
+    "rededge1",
+    "nir",
+    "nir08",
+    "swir16",
+    "swir22"
+  ],
+  "indices": [
+    "NDVI",
+    "EVI",
+    "SAVI"
+  ],
+  "settings": {
+    "SATELLITE_GDAL_CACHE_MB": "64",
+    "SATELLITE_DATE_WORKERS": "1",
+    "SATELLITE_BAND_WORKERS": "1",
+    "SATELLITE_GLOBAL_TASKS": "1",
+    "SATELLITE_WINDOW_SIZE": "512"
+  },
+  "notes": "Local synthetic COG inputs, warm OS cache, one date/worker; overview generation disabled. Timings exclude fixture generation, imports and catalog/network access. RSS includes imports and GDAL caches. Not a cloud latency benchmark.",
+  "results": [
+    {
+      "mode": "baseline",
+      "size": 1024,
+      "pixels": 1048576,
+      "seconds": 0.772,
+      "initial_peak_mib": 136.91,
+      "peak_rss_mib": 284.64,
+      "output_bytes": 39675166,
+      "index_samples": {
+        "NDVI": -0.2409123331308365,
+        "EVI": 0.15658660233020782,
+        "SAVI": -0.19110439717769623
+      }
+    },
+    {
+      "mode": "windowed",
+      "size": 1024,
+      "pixels": 1048576,
+      "seconds": 0.665,
+      "initial_peak_mib": 73.94,
+      "peak_rss_mib": 185.81,
+      "output_bytes": 52711818,
+      "windows_processed": 4,
+      "source_opens": 8,
+      "window_reads": 32,
+      "index_samples": {
+        "NDVI": -0.2409123033285141,
+        "EVI": 0.15658660233020782,
+        "SAVI": -0.19110439717769623
+      }
+    },
+    {
+      "mode": "baseline",
+      "size": 2048,
+      "pixels": 4194304,
+      "seconds": 4.01,
+      "initial_peak_mib": 136.92,
+      "peak_rss_mib": 630.28,
+      "output_bytes": 158696534,
+      "index_samples": {
+        "NDVI": 0.7297477722167969,
+        "EVI": -0.5559883117675781,
+        "SAVI": 0.7036574482917786
+      }
+    },
+    {
+      "mode": "windowed",
+      "size": 2048,
+      "pixels": 4194304,
+      "seconds": 2.59,
+      "initial_peak_mib": 73.88,
+      "peak_rss_mib": 199.5,
+      "output_bytes": 210835165,
+      "windows_processed": 16,
+      "source_opens": 8,
+      "window_reads": 128,
+      "index_samples": {
+        "NDVI": 0.7297477722167969,
+        "EVI": -0.5559883117675781,
+        "SAVI": 0.7036574482917786
+      }
+    }
+  ],
+  "pipeline_source_hashes": {
+    "processing_utils.py": "935e090b67f14aa044eb24f682ce719555277da5ff1e8af60ec488d5aeaa9e4a",
+    "result_metrics.py": "a831b924c07fc8b27f6df60a5d0d75ec279d4accf0de2dc2e98ebc7158b1a6a5",
+    "raster_engine.py": "fb1eae15cbbcbb07991a422f67e75f19412fea1c51d7d34b02ad3fe2820fa2f8",
+    "resource_budget.py": "3c1e2e05632a0bf99b63745c7667c4e651fff18f20d6edbfe7e4c8dc85ff7e30",
+    "satellite_config.py": "902b8fe7bf3458e91adb1d04b1f82b5c0b78ca279e13922ece2a1add8d90b9a5"
+  },
+  "baseline_sha256": "e992a4b6c1c78893fdcb3d663f36c256df0cf699faccac196ea6cd3b1c55722f"
+}

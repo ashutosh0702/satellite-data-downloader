@@ -33,7 +33,9 @@ flowchart LR
 
 | Component | Responsibility | Boundary |
 |---|---|---|
-| `app.py`, `pages/` | Search controls, map, previews, job submission | No raster arrays or network work in background callbacks to Streamlit |
+| `app.py`, `portal.py`, `pages/` | ASGI entry point, home page, search controls, map and job submission | Raster workers report state without calling Streamlit |
+| `results_ui.py`, `result_artifacts.py`, `artifact_delivery.py` | Full-width dashboard, bounded thumbnails, committed-file TIFF/ZIP streaming | Expiring capabilities expose only committed outputs |
+| `result_metrics.py`, `job_progress.py` | Online pixel summaries and structured progress aggregation | Bounded sample storage; thread-safe progress snapshots |
 | `ui_components.py` | Cached upload parsing, job polling, cancellation/recovery controls, result presentation | Workers receive ordinary Python callbacks |
 | `input_utils.py` | Upload byte limits, archive validation, CRS normalization, single-point/polygon validation | Temporary ZIP files are removed after parsing; archives are not extracted |
 | `satellite_config.py` | Collection-specific bands, native resolutions, index formulas, required-band expansion | One shared capability registry for UI and processing |
@@ -256,7 +258,7 @@ The immutable processing configuration is stored once; aggregate progress manife
 
 See [benchmark_results.json](benchmark_results.json) for raw results, environment, source hash and methodology. The benchmark compares the original source snapshot against the new pipeline in isolated child processes, with identical synthetic local COGs, eight bands, three indices, one worker, a 64 MiB GDAL cache and overview generation disabled. Fixture generation, imports and catalog/network access are outside the elapsed-time measurement; peak RSS includes imports. These are pipeline-only child processes: the new core avoids importing GeoPandas, while the full UI still imports it for uploads; absolute server RSS will differ.
 
-Measured results in the clean locked environment:
+Historical core measurements in the clean locked environment (before online result summaries; see [current measurements](ux_benchmark_results.json) for this revision):
 
 | Grid | Original time | Windowed time | Original peak RSS | Windowed peak RSS |
 |---|---:|---:|---:|---:|
@@ -275,7 +277,7 @@ process_items(items, aoi_geom, collection="sentinel-2-l2a", bands=None,
               *, indices=None, resolution=10, target_crs=None,
               cancel_event=None, resume=True, apply_scl_filter=False,
               requester_pays=False, detail_callback=None, overviews=True,
-              radiometry_policy="strict")
+              radiometry_policy="strict", event_callback=None)
 # Existing: (composite_paths, elapsed_seconds)
 # With return_report=True: (..., report), including integrated index paths.
 
@@ -305,7 +307,7 @@ The standalone legacy-float migration choices are `legacy_scale=0.0001` for old 
 
 [Machine-readable validation evidence](validation_results.json) records the exact environment and check results.
 
-The clean locked Python 3.14.9 environment passed **85 offline unittest cases**, including Streamlit AppTest checks. Ruff and `git diff --check` passed. Python 3.12 validation is configured in CI but was not executed locally.
+The initial core revision passed **85 offline unittest cases** in the clean locked Python 3.14.9 environment. The subsequent results dashboard/export revision passes **113 offline cases**; see [UX implementation and diagrams](UX_IMPROVEMENTS.md) and [current evidence](ux_validation_results.json). Ruff and `git diff --check` pass. Python 3.12 validation is configured in CI but was not executed locally.
 
 The offline suite covers arithmetic overflow, reflectance offsets, per-scene calibration, cross-CRS and GCP warping, polygon holes, native resolution, nodata/internal masks, coherent multiband scene selection, complete/limited searches, inclusive clouds, cache isolation/limits/expiry, HTTP timeout configuration, stale UI state, missing assets/SCL, all seven known index formulas, shifted and cross-resolution masks, staged write failures, corrupt bundle recovery, cancellation, resource admission, job persistence and receipt path isolation.
 

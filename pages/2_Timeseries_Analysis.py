@@ -81,5 +81,6 @@ with right:
         "Series and diagnostics remain available when controls change. "
         "Start a new job to apply new parameters. Missing SCL pixels are excluded when filtering is enabled."
     )
-    recovery_controls("timeseries")
-    render_job("timeseries")
+
+recovery_controls("timeseries")
+render_job("timeseries")

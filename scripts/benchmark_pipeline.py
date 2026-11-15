@@ -178,6 +178,7 @@ def main(args):
             name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
             for name in (
                 "processing_utils.py",
+                "result_metrics.py",
                 "raster_engine.py",
                 "resource_budget.py",
                 "satellite_config.py",
